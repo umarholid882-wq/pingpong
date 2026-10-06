@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ky">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Стол тенниси — 2 оюнчу</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#0b1711;color:white;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center}
+.wrap{width:min(1100px,100%);padding:12px;position:relative}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.title{font-size:clamp(20px,4vw,34px);font-weight:900}
+.keys{font-size:13px;color:#ccc;text-align:right;line-height:1.7}
+.blue{color:#61a6ff}.red{color:#ff7070}
+.score{position:absolute;top:58px;left:50%;transform:translateX(-50%);font-size:clamp(36px,7vw,60px);font-weight:900;letter-spacing:8px;text-shadow:0 3px 10px #000;z-index:2}
+.status{position:absolute;top:112px;left:50%;transform:translateX(-50%);font-size:12px;background:#0006;padding:5px 10px;border-radius:20px;z-index:2;white-space:nowrap}
+canvas{display:block;width:100%;aspect-ratio:5/3;border-radius:14px;background:#176b42;box-shadow:0 16px 50px #000;touch-action:none}
+.bottom{text-align:center;color:#888;font-size:12px;margin-top:8px}
+.overlay{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;background:#0009;border-radius:14px;z-index:5}
+.card{width:min(500px,92%);background:#151b17;border:1px solid #304038;border-radius:20px;padding:30px;text-align:center;box-shadow:0 20px 60px #000}
+.card h1{font-size:clamp(26px,6vw,42px);margin:0 0 12px}
+.card p{color:#bbb;line-height:1.5}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.box{background:#202923;padding:12px;border-radius:12px;line-height:1.6}
+button{border:0;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:900;cursor:pointer}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><div class="title">🏓 Стол тенниси</div><div class="keys"><span class="blue">🔵 1-Оюнчу: W / S</span><br><span class="red">🔴 2-Оюнчу: ↑ / ↓</span></div></div>
+<div class="score"><span id="s1">0</span> : <span id="s2">0</span></div>
+<div id="status" class="status">Оюн башталууда</div>
+<canvas id="game" width="1000" height="600"></canvas>
+<div class="bottom">Биринчи болуп 11 упай алган оюнчу жеңет</div>
+<div id="overlay" class="overlay"><div class="card">
+<h1 id="title">🏓 2 ОЮНЧУЛУУ ПИНГ-ПОНГ</h1>
+<p id="msg">Бир компьютерде эки адам ойнойт.</p>
+<div class="controls"><div class="box"><b class="blue">🔵 1-Оюнчу</b><br>W — өйдө<br>S — ылдый</div><div class="box"><b class="red">🔴 2-Оюнчу</b><br>↑ — өйдө<br>↓ — ылдый</div></div>
+<button id="start">Оюнду баштоо</button>
+</div></div>
+</div>
+<script>
+(()=>{"use strict";
+const c=document.getElementById("game"),x=c.getContext("2d"),W=1000,H=600;
+const t={x:65,y:75,w:870,h:450},p1={x:88,y:245,w:19,h:110,v:8},p2={x:893,y:245,w:19,h:110,v:8};
+const b={x:500,y:300,r:11,vx:0,vy:0,s:7};
+let a=0,d=0,run=false,over=false,timer=null,keys={w:0,s:0,u:0,d:0};
+const $=id=>document.getElementById(id);
+function snd(f,len=.06,type="sine"){try{let A=window.audioCtx||(window.audioCtx=new(window.AudioContext||window.webkitAudioContext)()),o=A.createOscillator(),g=A.createGain();o.type=type;o.frequency.value=f;g.gain.value=.035;o.connect(g);g.connect(A.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+len);o.stop(A.currentTime+len)}catch(e){}}
+function clamp(p){p.y=Math.max(t.y,Math.min(t.y+t.h-p.h,p.y))}
+function score(){ $("s1").textContent=a;$("s2").textContent=d}
+function serve(dir){b.x=500;b.y=300;b.s=7;let q=Math.random()*.75-.375;b.vx=dir*b.s*Math.cos(q);b.vy=b.s*Math.sin(q);$("status").textContent=(dir>0?"1-Оюнчу":"2-Оюнчу")+" сервис кылды"}
+function start(){if(timer)clearTimeout(timer);a=d=0;score();p1.y=p2.y=245;over=false;run=true;$("overlay").classList.add("hidden");serve(Math.random()<.5?1:-1);snd(520,.09)}
+function finish(w){run=false;over=true;$("title").textContent=w==1?"🏆 1-ОЮНЧУ ЖЕҢДИ!":"🏆 2-ОЮНЧУ ЖЕҢДИ!";$("msg").innerHTML="Акыркы эсеп: <b>"+a+" : "+d+"</b><br>Кайра ойноо үчүн баскычты бас."; $("start").textContent="Кайра ойноо";$("overlay").classList.remove("hidden");snd(w==1?850:1000,.2,"triangle")}
+function point(w){w==1?a++:d++;score();snd(w==1?720:330,.1,"square");if(a>=11||d>=11)return finish(a>d?1:2);run=false;$("status").textContent=(w==1?"1-Оюнчу":"2-Оюнчу")+" упай алды";timer=setTimeout(()=>{run=true;serve(w==1?1:-1)},700)}
+function hit(p,left){if(b.x+b.r>p.x&&b.x-b.r<p.x+p.w&&b.y+b.r>p.y&&b.y-b.r<p.y+p.h&&((left&&b.vx<0)||(!left&&b.vx>0))){let r=(b.y-(p.y+p.h/2))/(p.h/2),ang=r*.95;b.s=Math.min(14.5,b.s+.3);let dir=left?1:-1;b.vx=dir*b.s*Math.cos(ang);b.vy=b.s*Math.sin(ang);b.x=left?p.x+p.w+b.r:p.x-b.r;snd(left?430:500,.05)}}
+function update(){if(!run)return;if(keys.w)p1.y-=p1.v;if(keys.s)p1.y+=p1.v;if(keys.u)p2.y-=p2.v;if(keys.d)p2.y+=p2.v;clamp(p1);clamp(p2);b.x+=b.vx;b.y+=b.vy;if(b.y-b.r<=t.y){b.y=t.y+b.r;b.vy=Math.abs(b.vy)}if(b.y+b.r>=t.y+t.h){b.y=t.y+t.h-b.r;b.vy=-Math.abs(b.vy)}hit(p1,true);hit(p2,false);if(b.x+b.r<t.x)point(2);else if(b.x-b.r>t.x+t.w)point(1)}
+function paddle(p,col){x.fillStyle="#0005";x.fillRect(p.x+6,p.y+7,p.w,p.h);x.fillStyle=col;x.fillRect(p.x,p.y,p.w,p.h);x.fillStyle="#f4f4f4";x.fillRect(p.x+3,p.y+6,p.w-6,p.h-12)}
+function draw(){x.clearRect(0,0,W,H);let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#183d2d");g.addColorStop(1,"#091d14");x.fillStyle=g;x.fillRect(0,0,W,H);x.fillStyle="#0005";x.fillRect(t.x+13,t.y+16,t.w,t.h);let q=x.createLinearGradient(0,t.y,0,t.y+t.h);q.addColorStop(0,"#198456");q.addColorStop(1,"#0d603c");x.fillStyle=q;x.fillRect(t.x,t.y,t.w,t.h);x.strokeStyle="#fff";x.lineWidth=7;x.strokeRect(t.x,t.y,t.w,t.h);x.lineWidth=3;x.beginPath();x.moveTo(500,t.y);x.lineTo(500,t.y+t.h);x.stroke();x.fillStyle="#ddd";x.fillRect(495,t.y-10,10,t.h+20);paddle(p1,"#347ff0");paddle(p2,"#e84b52");x.beginPath();x.arc(b.x+4,b.y+5,b.r+1,0,Math.PI*2);x.fillStyle="#0004";x.fill();x.beginPath();x.arc(b.x,b.y,b.r,0,Math.PI*2);x.fillStyle="#fff";x.fill()}
+function loop(){update();draw();requestAnimationFrame(loop)}
+addEventListener("keydown",e=>{if(["w","W","s","S","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();if(e.key=="w"||e.key=="W")keys.w=1;if(e.key=="s"||e.key=="S")keys.s=1;if(e.key=="ArrowUp")keys.u=1;if(e.key=="ArrowDown")keys.d=1;if(e.key==" "&&!run)start()});
+addEventListener("keyup",e=>{if(e.key=="w"||e.key=="W")keys.w=0;if(e.key=="s"||e.key=="S")keys.s=0;if(e.key=="ArrowUp")keys.u=0;if(e.key=="ArrowDown")keys.d=0});
+$("start").onclick=start;score();draw();requestAnimationFrame(loop);
+})();
+</script>
+</body></html>
